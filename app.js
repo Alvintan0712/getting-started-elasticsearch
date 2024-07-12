@@ -58,7 +58,36 @@ const storeDocument = async (indexName, document) => {
     body: JSON.stringify(document),
   };
   const response = await fetch(`${host}/${indexName}/_doc`, options);
-  console.log("Document stored:", await response.json());
+  const data = await response.json();
+  console.log("Document stored:", data);
+  return data;
+}
+
+const updateDocument = async (indexName, id, document) => {
+  const options = {
+    method: "POST",
+    agent: httpsAgent,
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Basic ${btoa(`${username}:${password}`)}`, 
+    },
+    body: JSON.stringify({ doc: document }),
+  };
+  const response = await fetch(`${host}/${indexName}/_update/${id}`, options);
+  console.log("Document updated:", await response.json());
+}
+
+const deleteDocument = async (indexName, id) => {
+  const options = {
+    method: "DELETE",
+    agent: httpsAgent,
+    headers: {
+      "Authorization": `Basic ${btoa(`${username}:${password}`)}`,
+    },
+  };
+
+  const response = await fetch(`${host}/${indexName}/_doc/${id}`, options);
+  console.log("Document deleted:", await response.json());
 }
 
 const searchDocument = async (indexName, query) => {
@@ -81,13 +110,20 @@ const searchDocument = async (indexName, query) => {
 const run = async () => {
   const indexName = "tweets";
   await createIndex(indexName);
-  await storeDocument(indexName, {
+  const doc = await storeDocument(indexName, {
     username: "john_doe",
     date: new Date().toISOString(),
     message: "Hello World!",
   });
   await sleep(1000);
   await searchDocument(indexName, { username: "john_doe" });
+  await sleep(1000);
+  await updateDocument(indexName, doc._id, { username: "john" });
+  await sleep(1000);
+  await searchDocument(indexName, { username: "john" });
+  await deleteDocument(indexName, doc._id);
+  await sleep(1000);
+  await searchDocument(indexName, { username: "john" });
   await deleteIndex(indexName);
 }
 
